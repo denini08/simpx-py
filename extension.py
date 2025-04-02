@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Dict, Optional, Union, Callable, Any, TypeVar, Awaitable
+from typing import List, Dict, Optional, Union, Callable, Any, TypeVar, Awaitable, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -145,10 +145,21 @@ class ChatItemWrapper:
     _chat_item: ChatItem
     _chat_info: ChatInfo
     _client: ChatClient
+    is_live: bool = False 
+
+    def _get_chat_context(self) -> Tuple[ChatType, int]:
+        """Return the chat type and target ID based on chat info."""
+        if self._chat_info["type"] == "direct":
+            return ChatType.Direct, self._chat_info["contact"]["contactId"]
+        elif self._chat_info["type"] == "group":
+            return ChatType.Group, self._chat_info["groupInfo"]["groupId"]
+        else:
+            raise ValueError(f"Unsupported chat type: {self._chat_info['type']}")
     
     @property
     def id(self) -> int:
         """Get the chat item ID."""
+        print(self._chat_item)
         return self._chat_item["meta"]["itemId"]
     
     @property
@@ -218,6 +229,43 @@ class ChatItemWrapper:
             self.id, 
             msg_content
         )
+
+    async def update_live(self, new_text: str) -> 'ChatItemWrapper':
+        """
+        Update this live message with new text.
+        This sends an update with liveType 'update' and updates the internal state.
+        """
+        chat_type, chat_id = self._get_chat_context()
+        updated_live_message = {
+            "type": "liveText",
+            "text": new_text,
+            #"liveType": "update",
+            "metadata": {}  # Extend as needed
+        }
+        updated_item = await self._client.api_update_chat_item(
+            chat_type, chat_id, self.id, updated_live_message
+        )
+        self._chat_item = updated_item
+        return self
+
+    async def finish_live(self) -> 'ChatItemWrapper':
+        """
+        Finish the live message by sending an update with liveType 'end'
+        and marking the message as no longer live.
+        """
+        chat_type, chat_id = self._get_chat_context()
+        end_live_message = {
+            "type": "text",
+            "text": self.text,  # Optionally, you might append a notice like " (ended)"
+            #"liveType": "end",
+            "metadata": {}
+        }
+        updated_item = await self._client.api_update_chat_item(
+            chat_type, chat_id, self.id, end_live_message
+        )
+        self._chat_item = updated_item
+        self.is_live = False
+        return self
     
     async def delete(self, delete_mode: str = "broadcast") -> Optional[ChatItem]:
         """Delete the message."""
@@ -290,6 +338,38 @@ class ChatWrapper:
             return GroupWrapper(self._chat["chatInfo"]["groupInfo"], self._client)
         else:
             raise ValueError(f"Unsupported chat type: {self.type}")
+
+    async def send_message(self, text: str, live: bool = False, ttl: Optional[int] = None) -> List[Dict[str, Any]]:
+        if self.type == "direct":
+            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            chat_type = ChatType.Direct
+        elif self.type == "group":
+            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            chat_type = ChatType.Group
+        else:
+            raise ValueError(f"Cannot send message to chat of type: {self.type}")
+
+        if live:
+            # Construct the live message content using MCLiveText structure.
+            live_message = {
+                "type": "liveText",
+                "text": text,
+                "liveType": "start",   # "start" to initiate a live message; updates can change this value.
+                "metadata": {}         # You can add extra metadata as needed.
+            }
+            # Use the live message API call.
+            resp = await self._client.api_send_messages(
+                chat_type, 
+                entity_id, 
+                [{"msgContent": live_message, "liveMessage": True, "ttl": ttl}]
+            )
+        else:
+            # For non-live messages, use the regular text message API.
+            resp = await self._client.api_send_text_message(chat_type, entity_id, text)
+
+        wrapper = ChatItemWrapper(resp[0], self._chat["chatInfo"], self._client, is_live=live)
+        return wrapper
+    
     
     async def send_message(self, text: str) -> List[Dict[str, Any]]:
         """Send a text message to this chat."""
@@ -729,3 +809,4 @@ class SimpleXBotExtensions:
         for task in self.scheduled_tasks:
             task.cancel()
         self.scheduled_tasks = []
+

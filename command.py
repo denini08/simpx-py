@@ -71,19 +71,34 @@ class MCFile(TypedDict):
     type: Literal["file"]
     text: str
 
+class MCLiveText(TypedDict):
+    """Live text message content."""
+    type: Literal["liveText"]
+    text: str
+    liveType: str
+    metadata: Optional[Dict[str, Any]]
+
+class LiveMessageType(str, Enum):
+    """Types of live messages."""
+    START = "start"
+    UPDATE = "update"
+    END = "end"
+
 class MCUnknown(TypedDict):
     """Unknown message content."""
     type: str
     text: str
 
 # Union type for message content
-MsgContent = Union[MCText, MCLink, MCImage, MCFile, MCUnknown]
+MsgContent = Union[MCText, MCLink, MCImage, MCFile, MCLiveText, MCUnknown]
 
 class ComposedMessage(TypedDict, total=False):
     """A message to be sent."""
     msgContent: MsgContent
     filePath: Optional[str]
     quotedItemId: Optional[ChatItemId]
+    liveMessage: Optional[bool]
+    ttl: Optional[int]
     
 class ChatPagination(TypedDict, total=False):
     """Pagination for chat messages."""
@@ -168,6 +183,7 @@ class APISendMessage(IChatCommand):
     chatType: ChatType
     chatId: int
     messages: List[ComposedMessage]
+    liveMessage: bool = False
 
 class APIUpdateChatItem(IChatCommand):
     type: Literal["apiUpdateChatItem"]
@@ -175,6 +191,7 @@ class APIUpdateChatItem(IChatCommand):
     chatId: int
     chatItemId: ChatItemId
     msgContent: MsgContent
+    liveMessage: bool = False
 
 class APIDeleteChatItem(IChatCommand):
     type: Literal["apiDeleteChatItem"]
@@ -370,12 +387,16 @@ def auto_accept_str(auto_accept: Optional[AutoAccept]) -> str:
     
     return result
 
+def wrappify(d):
+    if 'msgContent' in d:
+        return {'msgContent':d['msgContent'], 'mentions':{}}
+
 def cmd_string(cmd: ChatCommand) -> str:
     """Convert a command object to a string."""
     import json
     
     cmd_type = cmd["type"]
-    
+
     # Command string builders using a dictionary for dispatch
     cmd_builders = {
         "showActiveUser": lambda _: "/u",
@@ -386,8 +407,10 @@ def cmd_string(cmd: ChatCommand) -> str:
         "setIncognito": lambda c: f"/incognito {on_off(c['incognito'])}",
         "apiGetChats": lambda c: f"/_get chats pcc={on_off(c.get('pendingConnections'), False)}",
         "apiGetChat": lambda c: f"/_get chat {c['chatType']}{c['chatId']}{pagination_str(c['pagination'])}" + (f" {c['search']}" if c.get('search') else ""),
-        "apiSendMessage": lambda c: f"/_send {c['chatType']}{c['chatId']} json {json.dumps(c['messages'])}",
-        "apiUpdateChatItem": lambda c: f"/_update item {c['chatType']}{c['chatId']} {c['chatItemId']} json {json.dumps(c['msgContent'])}",
+
+        "apiSendMessage": lambda c: f"/_send {c['chatType']}{c['chatId']}" + (" live=on" if c.get("liveMessage") else "") + f" json {json.dumps(c['messages'])}",
+        #"apiSendMessage": lambda c: f"/_send {c['chatType']}{c['chatId']} json {json.dumps(c['messages'])}",
+        "apiUpdateChatItem": lambda c: f"/_update item {c['chatType']}{c['chatId']} {c['chatItemId']}" + (" live=on" if c.get("liveMessage") else "") + f" json {json.dumps(wrappify(c))}",
         "apiDeleteChatItem": lambda c: f"/_delete item {c['chatType']}{c['chatId']} {c['chatItemId']} {c['deleteMode']}",
         "apiChatRead": lambda c: f"/_read chat {c['chatType']}{c['chatId']}" + (f" from={c['itemRange']['fromItem']} to={c['itemRange']['toItem']}" if c.get('itemRange') else ""),
         "apiChatItemsRead": lambda c: f"/_read chat items {c['chatType']}{c['chatId']} " + (str(c['msgIds']) if isinstance(c['msgIds'], int) else ' '.join(str(i) for i in c['msgIds'])),

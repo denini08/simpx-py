@@ -244,12 +244,14 @@ class ChatClient:
     async def api_send_messages(self, 
                               chat_type: ChatType, 
                               chat_id: int, 
-                              messages: List[ComposedMessage]) -> List[AChatItem]:
+                              messages: List[ComposedMessage],
+                              is_live: bool = False) -> List[AChatItem]:
         """Send messages to a chat."""
         r = await self.send_chat_command({
             "type": "apiSendMessage", 
             "chatType": chat_type.value,  # Use the enum value
             "chatId": chat_id, 
+            "liveMessage": is_live,
             "messages": messages
         })
         if r["type"] == "newChatItems":
@@ -259,12 +261,33 @@ class ChatClient:
     async def api_send_text_message(self, 
                                   chat_type: ChatType, 
                                   chat_id: int, 
-                                  text: str) -> List[AChatItem]:
+                                  text: str,
+                                  live: bool = False,
+                                  ttl: Optional[int] = None) -> List[AChatItem]:
         """Send a text message to a chat."""
+        if live:
+            # Build a live message using the live text structure
+            message = {
+                "msgContent": {
+                    "type": "liveText",
+                    "text": text,
+                    "liveType": "start"  # Use "start" to begin a live message session
+                },
+                "ttl": ttl
+            }
+        else:
+            # Build a standard text message
+            message = {
+                "msgContent": {
+                    "type": "text",
+                    "text": text
+                }
+            }
         return await self.api_send_messages(
             chat_type, 
             chat_id, 
-            [{"msgContent": {"type": "text", "text": text}}]
+            [message],
+            is_live=live
         )
     
     async def api_update_chat_item(self, 
@@ -273,12 +296,14 @@ class ChatClient:
                                  chat_item_id: ChatItemId, 
                                  msg_content: MsgContent) -> ChatItem:
         """Update a chat item."""
+        is_live = msg_content.get("type") == "liveText"
         r = await self.send_chat_command({
             "type": "apiUpdateChatItem", 
             "chatType": chat_type.value, 
             "chatId": chat_id, 
             "chatItemId": chat_item_id, 
-            "msgContent": msg_content
+            "msgContent": msg_content,
+            "liveMessage": is_live
         })
         if r["type"] == "chatItemUpdated":
             return r["chatItem"]["chatItem"]

@@ -1,8 +1,10 @@
 import asyncio
+import random
 import functools
 import inspect
 import re
 from typing import Dict, List, Callable, Optional, Any, Union, TypeVar, Pattern, Awaitable
+import traceback
 
 from client import ChatClient, ChatCommandError
 from command import ChatType
@@ -168,6 +170,7 @@ class SimpleXBot:
                 await self._dispatch_event(response)
             except Exception as e:
                 print(f"Error processing message: {e}")
+                traceback.print_exc()
                 # Add a small delay to prevent tight error loops
                 await asyncio.sleep(0.1)
 
@@ -426,7 +429,7 @@ class SimpleXBot:
             raise ValueError("Bot has not been started yet.")
         return self.ext.cancel_all_scheduled_tasks()
     
-    async def send_message(self, recipient, text: str) -> List[Any]:
+    async def send_message(self, recipient, text: str, live: bool = False, ttl: Optional[int] = None) -> List[Any]:
         """
         Send a text message to a recipient.
         
@@ -441,11 +444,11 @@ class SimpleXBot:
             The list of chat items created
         """
         if isinstance(recipient, ContactWrapper):
-            return await recipient.send_message(text)
+            return await recipient.send_message(text,live=live,ttl=ttl)
         elif isinstance(recipient, GroupWrapper):
-            return await recipient.send_message(text)
+            return await recipient.send_message(text,live=live,ttl=ttl)
         elif isinstance(recipient, ChatWrapper):
-            return await recipient.send_message(text)
+            return await recipient.send_message(text,live=live,ttl=ttl)
         else:
             # Handle the original ChatInfo case and other potential formats
             contact_id = None
@@ -464,7 +467,9 @@ class SimpleXBot:
             return await self.client.api_send_text_message(
                 chat_type,
                 contact_id,
-                text
+                text,
+                live=live,
+                ttl=ttl
             )
     
     def set_command_prefix(self, prefix: str):
@@ -631,53 +636,3 @@ class SimpleXBot:
         if self.client:
             self.running = False
             await self.client.disconnect()
-
-# Example usage
-if __name__ == "__main__":
-    from profile import BotProfile
-    
-    # Create a bot profile
-    profile = BotProfile(
-        display_name="ExampleBot",
-        full_name="Example Bot",
-        description="An example bot using SimpX framework",
-        welcome_message="Hello {name}! I'm an example bot. Try !help to see what I can do.",
-        auto_accept_message="This is the example bot!",
-        command_prefix="!"
-    )
-    
-    # Create the bot with the profile
-    bot = SimpleXBot(profile)
-    
-    @bot.command(name="info", help="Shows bot information")
-    async def info_command(chat_info, profile):
-        """Command that shows information about the bot's profile."""
-        await bot.send_message(
-            chat_info,
-            f"*Bot Information*\n"
-            f"Name: {profile.display_name}\n"
-            f"Description: {profile.description}\n"
-            f"Address: {profile.address}"
-        )
-    
-    @bot.command(name="echo", help="Echoes your message")
-    async def echo_command(chat_info, args):
-        await bot.send_message(chat_info, f"You said: {args}")
-        
-    @bot.command(name="square", help="Calculates the square of a number")
-    async def square_command(chat_info, args):
-        try:
-            number = float(args.strip())
-            result = number * number
-            await bot.send_message(chat_info, f"{number} × {number} = {result}")
-        except ValueError:
-            await bot.send_message(chat_info, "Please provide a valid number to square.")
-    
-    @bot.command(name="add", pattern=r"add (?P<a>\d+) (?P<b>\d+)", help="Adds two numbers")
-    async def add_command(chat_info, a, b):
-        result = int(a) + int(b)
-        await bot.send_message(chat_info, f"{a} + {b} = {result}")
-    
-
-    # Start the bot
-    asyncio.run(bot.start())

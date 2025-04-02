@@ -3,73 +3,16 @@ import random
 from profile import BotProfile
 from bot import SimpleXBot
 from extension import ChatWrapper
+from openai import OpenAI
+from typing import List
+import traceback
 
-class AIResponseSimulator:
-    """Simulates an AI response generation process."""
-    
-    @staticmethod
-    async def generate_response(prompt: str) -> List[str]:
-        """
-        Simulate an AI generating a response incrementally.
-        
-        Args:
-            prompt: The input prompt to generate a response for
-        
-        Returns:
-            List of response chunks
-        """
-        # A dictionary of predefined responses for different prompts
-        responses = {
-            "tell me a story": [
-                "Once upon a time,", 
-                "in a magical land far away,", 
-                "there lived a brave knight", 
-                "who embarked on an incredible journey.", 
-                "The knight's quest was to protect", 
-                "the kingdom from an ancient dragon."
-            ],
-            "explain quantum physics": [
-                "Quantum physics is a fundamental theory", 
-                "that describes nature at the smallest scales", 
-                "of energy levels of atoms and subatomic particles.", 
-                "It introduces several mind-bending concepts", 
-                "like quantum superposition and entanglement.", 
-                "These phenomena challenge our classical understanding", 
-                "of how the universe works."
-            ],
-            "default": [
-                "Let me", 
-                "generate", 
-                "a response", 
-                "for you", 
-                "step by step."
-            ]
-        }
-        
-        # Choose the appropriate response list
-        chunks = responses.get(prompt.lower(), responses["default"])
-        
-        return chunks
-    
-    @staticmethod
-    async def generate_token_stream(prompt: str) -> List[str]:
-        """
-        Generate a response as individual word tokens.
-        
-        Args:
-            prompt: The input prompt
-        
-        Returns:
-            List of word tokens
-        """
-        # Simulating a more granular token-based generation
-        tokens = prompt.split()
-        
-        # If no tokens, use a default
-        if not tokens:
-            tokens = ["Processing", "your", "request", "please", "wait"]
-        
-        return tokens
+aiclient = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key="<API_KEY_HERE>",
+)
+
+CHAT_MODEL = "google/gemini-2.0-flash-lite-001"
 
 # Example usage
 if __name__ == "__main__":
@@ -116,39 +59,60 @@ if __name__ == "__main__":
         result = int(a) + int(b)
         await bot.send_message(chat_info, f"{a} + {b} = {result}")
     
-    @bot.command(name="ask", help="Ask an AI a question and get a live-streamed response")
+    @bot.command(name="msg", help="Ask an AI a question and get a live-streamed response")
     async def ask_command(chat_info, args):
         """
-        Demonstrate live messaging with an AI-like response streaming.
+        Demonstrate live messaging with an AI streaming response from OpenRouter.
         
         Args:
             chat_info: Chat information dictionary.
             args: User's prompt.
         """
-        # Create a ChatWrapper instance using the provided chat_info and the bot's client
+        # Create a ChatWrapper instance using the provided chat_info and the bot's client.
         chat = ChatWrapper(chat_info, bot.client)
         
         try:
             # Start a live message session with an initial text.
             initial_text = "🤖 Processing your request..."
-            live_msg = await chat.send_message(initial_text, live=True, ttl=60)
-            
-            # Generate response chunks from the AI (simulate streaming)
-            chunks = await AIResponseSimulator.generate_response(args)
+            live_msg = await bot.send_message(chat, initial_text, live=True, ttl=60)
             current_response = ""
             
-            for chunk in chunks:
-                current_response += f"{chunk} "
-                # Update the live message with the current accumulated response.
-                await live_msg.update_live(f"🔍 {current_response}")
-                await asyncio.sleep(random.uniform(0.5, 1.5))
             
-            # Finalize the live message by finishing it.
+            # Create the chat completion request with streaming enabled.
+            response = aiclient.chat.completions.create(
+                model=CHAT_MODEL,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": args
+                            }
+                        ]
+                    }
+                ],
+                stream=True  # Enable streaming of the response.
+            )
+            
+            # Process each streaming chunk.
+            for chunk in response:
+                # Extract text content from the current chunk.
+                # Assumes chunk structure similar to OpenAI's streaming response.
+                chunk_text = chunk.choices[0].delta.content or ""
+                if chunk_text:
+                    current_response += chunk_text
+                    # Update the live message with the accumulated response.
+                    await live_msg.update_live(f"🔍 {current_response}")
+            
+            # Finalize the live message.
             await live_msg.finish_live()
         
         except Exception as e:
-            # In case of error, finalize the live message with an error message.
-            await live_msg.finish_live() 
+            # In case of error, finalize the live message.
+            traceback.print_exc()
+            await live_msg.finish_live()
 
     # Start the bot
     asyncio.run(bot.start())
+

@@ -337,6 +337,7 @@ class SimpleXBot:
             
             await handler(**handler_kwargs)
         except Exception as e:
+            traceback.print_exc()
             print(f"Error in command handler: {e}")
     
     async def get_user(self) -> UserWrapper:
@@ -529,7 +530,6 @@ class SimpleXBot:
             
         # If bot is running, reconnect contacts
         if self.running:
-            print("welcoming")
             # Re-register welcome message handler if one is set
             if self._welcome_message:
                 self._register_welcome_handler()

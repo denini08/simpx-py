@@ -159,7 +159,6 @@ class ChatItemWrapper:
     @property
     def id(self) -> int:
         """Get the chat item ID."""
-        print(self._chat_item)
         return self._chat_item["meta"]["itemId"]
     
     @property
@@ -299,24 +298,24 @@ class ChatItemWrapper:
 @dataclass
 class ChatWrapper:
     """Wrapper for Chat with additional helper methods."""
-    _chat: Chat
+    _chat: ChatInfo
     _client: ChatClient
     
     @property
     def info(self) -> ChatInfo:
         """Get the chat info."""
-        return self._chat["chatInfo"]
+        return self._chat
     
     @property
     def type(self) -> str:
         """Get the chat type."""
-        return self._chat["chatInfo"]["type"]
+        return self._chat["type"]
     
     @property
     def items(self) -> List[ChatItemWrapper]:
         """Get the chat items."""
         return [
-            ChatItemWrapper(item, self._chat["chatInfo"], self._client) 
+            ChatItemWrapper(item, self._chat, self._client) 
             for item in self._chat["chatItems"]
         ]
     
@@ -333,54 +332,34 @@ class ChatWrapper:
     def get_entity(self) -> Union[ContactWrapper, GroupWrapper]:
         """Get the entity associated with this chat (contact or group)."""
         if self.type == "direct":
-            return ContactWrapper(self._chat["chatInfo"]["contact"], self._client)
+            return ContactWrapper(self._chat["contact"], self._client)
         elif self.type == "group":
-            return GroupWrapper(self._chat["chatInfo"]["groupInfo"], self._client)
+            return GroupWrapper(self._chat["groupInfo"], self._client)
         else:
             raise ValueError(f"Unsupported chat type: {self.type}")
 
     async def send_message(self, text: str, live: bool = False, ttl: Optional[int] = None) -> List[Dict[str, Any]]:
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
             chat_type = ChatType.Direct
         elif self.type == "group":
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
             chat_type = ChatType.Group
         else:
             raise ValueError(f"Cannot send message to chat of type: {self.type}")
 
-        if live:
-            # Construct the live message content using MCLiveText structure.
-            live_message = {
-                "type": "liveText",
-                "text": text,
-                "liveType": "start",   # "start" to initiate a live message; updates can change this value.
-                "metadata": {}         # You can add extra metadata as needed.
-            }
-            # Use the live message API call.
-            resp = await self._client.api_send_messages(
-                chat_type, 
-                entity_id, 
-                [{"msgContent": live_message, "liveMessage": True, "ttl": ttl}]
-            )
-        else:
-            # For non-live messages, use the regular text message API.
-            resp = await self._client.api_send_text_message(chat_type, entity_id, text)
+        # Use the live message API call.
+        resp = await self._client.api_send_text_message(
+            chat_type, 
+            entity_id, 
+            text,
+            live=live,
+            ttl=ttl
+        )
 
-        wrapper = ChatItemWrapper(resp[0], self._chat["chatInfo"], self._client, is_live=live)
+        wrapper = ChatItemWrapper(resp[0]['chatItem'], self._chat, self._client, is_live=live)
         return wrapper
     
-    
-    async def send_message(self, text: str) -> List[Dict[str, Any]]:
-        """Send a text message to this chat."""
-        if self.type == "direct":
-            contact_id = self._chat["chatInfo"]["contact"]["contactId"]
-            return await self._client.api_send_text_message(ChatType.Direct, contact_id, text)
-        elif self.type == "group":
-            group_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
-            return await self._client.api_send_text_message(ChatType.Group, group_id, text)
-        else:
-            raise ValueError(f"Cannot send message to chat of type: {self.type}")
     
     async def send_content(self, msg_content: MsgContent) -> List[Dict[str, Any]]:
         """Send complex content to this chat."""
@@ -388,10 +367,10 @@ class ChatWrapper:
         entity_id = 0
         
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
         elif self.type == "group":
             chat_type = ChatType.Group
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
         else:
             raise ValueError(f"Cannot send content to chat of type: {self.type}")
         
@@ -407,10 +386,10 @@ class ChatWrapper:
         entity_id = 0
         
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
         elif self.type == "group":
             chat_type = ChatType.Group
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
         else:
             raise ValueError(f"Cannot mark chat of type {self.type} as read")
         
@@ -422,10 +401,10 @@ class ChatWrapper:
         entity_id = 0
         
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
         elif self.type == "group":
             chat_type = ChatType.Group
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
         else:
             raise ValueError(f"Cannot clear chat of type {self.type}")
         
@@ -437,13 +416,13 @@ class ChatWrapper:
         entity_id = 0
         
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
         elif self.type == "group":
             chat_type = ChatType.Group
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
         elif self.type == "contactRequest":
             chat_type = ChatType.ContactRequest
-            entity_id = self._chat["chatInfo"]["contactRequest"]["contactRequestId"]
+            entity_id = self._chat["contactRequest"]["contactRequestId"]
         else:
             raise ValueError(f"Cannot delete chat of type {self.type}")
         
@@ -458,13 +437,13 @@ class ChatWrapper:
         entity_id = 0
         
         if self.type == "direct":
-            entity_id = self._chat["chatInfo"]["contact"]["contactId"]
+            entity_id = self._chat["contact"]["contactId"]
         elif self.type == "group":
             chat_type = ChatType.Group
-            entity_id = self._chat["chatInfo"]["groupInfo"]["groupId"]
+            entity_id = self._chat["groupInfo"]["groupId"]
         elif self.type == "contactRequest":
             chat_type = ChatType.ContactRequest
-            entity_id = self._chat["chatInfo"]["contactRequest"]["contactRequestId"]
+            entity_id = self._chat["contactRequest"]["contactRequestId"]
         else:
             raise ValueError(f"Cannot refresh chat of type {self.type}")
         
@@ -474,11 +453,11 @@ class ChatWrapper:
     def __str__(self) -> str:
         entity = "Unknown"
         if self.type == "direct":
-            entity = self._chat["chatInfo"]["contact"]["localDisplayName"]
+            entity = self._chat["contact"]["localDisplayName"]
         elif self.type == "group":
-            entity = self._chat["chatInfo"]["groupInfo"]["localDisplayName"]
+            entity = self._chat["groupInfo"]["localDisplayName"]
         elif self.type == "contactRequest":
-            entity = self._chat["chatInfo"]["contactRequest"]["localDisplayName"]
+            entity = self._chat["contactRequest"]["localDisplayName"]
         
         return f"Chat({self.type}, {entity}, {len(self._chat['chatItems'])} messages)"
     

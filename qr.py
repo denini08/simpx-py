@@ -18,6 +18,3 @@ def print_qr_to_terminal(text: str):
     qr.add_data(text)
     qr.make(fit=True)
     qr.print_ascii()
-
-if __name__ == '__main__':
-    print_qr_to_terminal("https://www.example.com")

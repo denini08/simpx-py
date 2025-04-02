@@ -420,14 +420,21 @@ class ChatClient:
     async def api_chat_read(self, 
                           chat_type: ChatType, 
                           chat_id: int, 
-                          item_range: Optional[ItemRange] = None) -> None:
+                            ids: Union[int,List[int]]) -> None:
         """Mark chat items as read."""
-        return await self.ok_chat_command({
-            "type": "apiChatRead", 
-            "chatType": chat_type.value, 
-            "chatId": chat_id, 
-            "itemRange": item_range
-        })
+        if ids:
+            return await self.ok_chat_command({
+                "type": "apiChatItemsRead", 
+                "chatType": chat_type.value, 
+                "chatId": chat_id, 
+                "msgIds": ids
+            })
+        else:
+            return await self.ok_chat_command({
+                "type": "apiChatRead", 
+                "chatType": chat_type.value, 
+                "chatId": chat_id, 
+            })
     
     async def api_contact_info(self, contact_id: int) -> Tuple[Optional[ConnectionStats], Optional[Profile]]:
         """Get information about a contact."""

@@ -187,7 +187,12 @@ class APIChatRead(IChatCommand, total=False):
     type: Literal["apiChatRead"]
     chatType: ChatType
     chatId: int
-    itemRange: Optional[ItemRange]
+
+class APIChatItemsRead(IChatCommand, total=False):
+    type: Literal["apiChatItemsRead"]
+    chatType: ChatType
+    chatId: int
+    msgIds: Union[int, List[int]]
 
 class APIDeleteChat(IChatCommand):
     type: Literal["apiDeleteChat"]
@@ -297,6 +302,7 @@ ChatCommand = Union[
     APIUpdateChatItem,
     APIDeleteChatItem,
     APIChatRead,
+    APIChatItemsRead,
     APIDeleteChat,
     APIClearChat,
     APIAcceptContact,
@@ -384,6 +390,7 @@ def cmd_string(cmd: ChatCommand) -> str:
         "apiUpdateChatItem": lambda c: f"/_update item {c['chatType']}{c['chatId']} {c['chatItemId']} json {json.dumps(c['msgContent'])}",
         "apiDeleteChatItem": lambda c: f"/_delete item {c['chatType']}{c['chatId']} {c['chatItemId']} {c['deleteMode']}",
         "apiChatRead": lambda c: f"/_read chat {c['chatType']}{c['chatId']}" + (f" from={c['itemRange']['fromItem']} to={c['itemRange']['toItem']}" if c.get('itemRange') else ""),
+        "apiChatItemsRead": lambda c: f"/_read chat items {c['chatType']}{c['chatId']} " + (str(c['msgIds']) if isinstance(c['msgIds'], int) else ' '.join(str(i) for i in c['msgIds'])),
         "apiDeleteChat": lambda c: f"/_delete {c['chatType']}{c['chatId']}",
         "apiClearChat": lambda c: f"/_clear chat {c['chatType']}{c['chatId']}",
         "apiAcceptContact": lambda c: f"/_accept {c['contactReqId']}",

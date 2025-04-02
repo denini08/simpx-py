@@ -94,18 +94,19 @@ class WSTransport(Transport[Union[bytes, str], Union[bytes, str]]):
             return transport
         except asyncio.TimeoutError:
             raise TimeoutError(f"Connection to {url} timed out after {timeout}s")
-    
     async def _receive_loop(self):
         """Background task to receive messages from WebSocket."""
         try:
             async for message in self.socket:
                 await self.queue.enqueue(message)
         except Exception as e:
-            # On error, close the queue
-            await self.queue.close()
+            # On error, close the queue if not already closed
+            if not self.queue.enq_closed:
+                await self.queue.close()
         finally:
-            # Always close the queue when the socket closes
-            await self.queue.close()
+            # Only close the queue if not already closed
+            if not self.queue.enq_closed:
+                await self.queue.close()
     
     async def close(self) -> None:
         """Close the WebSocket connection."""

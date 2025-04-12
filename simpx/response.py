@@ -3,7 +3,7 @@ from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
 
-from command import (
+from .command import (
     ChatItemId, 
     MsgContent, 
     DeleteMode, 

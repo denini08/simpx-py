@@ -3,16 +3,16 @@ import json
 from enum import Enum
 from typing import Dict, List, Any, Optional, Tuple, Union, Callable, TypeVar, Generic, cast
 
-from queuex import ABQueue
-from transport import (
+from .queuex import ABQueue
+from .transport import (
     ChatTransport, ChatServer, ChatSrvRequest, ChatSrvResponse, 
     ChatResponseError, local_server, noop
 )
-from command import (
+from .command import (
     ChatCommand, ChatType, Profile, cmd_string, MsgContent,
-    GroupMemberRole, ItemRange, ComposedMessage, DeleteMode, ChatItemId, GroupProfile
+    GroupMemberRole, ComposedMessage, DeleteMode, ChatItemId, GroupProfile
 )
-from response import (
+from .response import (
     ChatResponse, ChatInfo, User, Contact, GroupInfo, GroupMember,
     AChatItem, ChatItem, ConnectionStats, CRChatCmdError, Chat
 )

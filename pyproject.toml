@@ -1,0 +1,29 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simpx-py"
+version = "0.1.0"
+license = {text = "MIT"}
+authors = [
+    { name = "FailSpy" },
+]
+description = "A Pythonic framework for creating SimpleX chat bots"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "websockets",
+    "qrcode"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/FailSpy/simpx-py"
+"Bug Tracker" = "https://github.com/FailSpy/simpx-py/issues"

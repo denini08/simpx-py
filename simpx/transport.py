@@ -4,8 +4,8 @@ import websockets
 from typing import Generic, TypeVar, Dict, Union, Optional, Any, AsyncIterator
 from abc import ABC, abstractmethod
 
-from queuex import ABQueue, ABQueueError
-from response import ChatResponse
+from .queuex import ABQueue, ABQueueError
+from .response import ChatResponse
 
 W = TypeVar('W')
 R = TypeVar('R')

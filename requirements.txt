@@ -1,0 +1,2 @@
+qrcode>=8.0
+websockets>=13.0,<14.0

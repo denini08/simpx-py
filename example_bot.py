@@ -1,7 +1,6 @@
 import asyncio
-from profile import BotProfile
-from bot import SimpleXBot
-from extension import ChatWrapper
+from simpx import BotProfile, SimpleXBot
+from simpx.extension import ChatWrapper
 from typing import List
 import traceback
 

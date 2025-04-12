@@ -106,11 +106,6 @@ class ChatPagination(TypedDict, total=False):
     after: Optional[ChatItemId]
     before: Optional[ChatItemId]
 
-class ItemRange(TypedDict):
-    """Range of items in a chat."""
-    fromItem: ChatItemId
-    toItem: ChatItemId
-
 class ServerCfg(TypedDict):
     """Server configuration."""
     server: str

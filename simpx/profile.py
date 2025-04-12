@@ -4,9 +4,9 @@ import os
 from typing import Dict, Optional, Any, List, Union, Tuple
 from dataclasses import dataclass, field, asdict
 
-from client import ChatClient
-from command import Profile as SimpleXProfile
-from qr import print_qr_to_terminal
+from .client import ChatClient
+from .command import Profile as SimpleXProfile
+from .qr import print_qr_to_terminal
 
 @dataclass
 class BotProfile:

@@ -6,12 +6,12 @@ import re
 from typing import Dict, List, Callable, Optional, Any, Union, TypeVar, Pattern, Awaitable
 import traceback
 
-from client import ChatClient, ChatCommandError
-from command import ChatType
-from response import ChatInfoType, ci_content_text, ChatResponse, ChatItem, ChatInfo, AChatItem
-from profile import BotProfile, ProfileManager
+from .client import ChatClient, ChatCommandError
+from .command import ChatType
+from .response import ChatInfoType, ci_content_text, ChatResponse, ChatItem, ChatInfo, AChatItem
+from .profile import BotProfile, ProfileManager
 
-from extension import (
+from .extension import (
     SimpleXBotExtensions, ContactWrapper, GroupWrapper, 
     ChatWrapper, UserWrapper, ChatItemWrapper, ScheduledTask
 )

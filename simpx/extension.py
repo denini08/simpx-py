@@ -3,9 +3,9 @@ from typing import List, Dict, Optional, Union, Callable, Any, TypeVar, Awaitabl
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from client import ChatClient, ChatCommandError
-from command import ChatType, MsgContent
-from response import ChatResponse, ChatInfo, Contact, Chat, ChatItem, User, GroupInfo, ci_content_text
+from .client import ChatClient, ChatCommandError
+from .command import ChatType, MsgContent
+from .response import ChatResponse, ChatInfo, Contact, Chat, ChatItem, User, GroupInfo, ci_content_text
 
 # Type for contact or group
 EntityType = Union[Contact, GroupInfo]
@@ -268,7 +268,7 @@ class ChatItemWrapper:
     
     async def delete(self, delete_mode: str = "broadcast") -> Optional[ChatItem]:
         """Delete the message."""
-        from command import DeleteMode
+        from .command import DeleteMode
         
         chat_type = ChatType.Direct
         chat_id = 0

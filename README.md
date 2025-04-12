@@ -50,6 +50,7 @@ This will open a websocket on port 5225 which Python can access. If you want to 
   - [ ] Port all SimpleX haskell message types
   - [ ] File handling
 - [ ] Directly integrate w/ CLI binary?
+- [ ] Privacy configuration
 - [ ] Exception handling
 - [ ] Logging
 - [ ] Always: documentation

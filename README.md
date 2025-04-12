@@ -61,7 +61,7 @@ Here's a commented example of how to create and run a bot:
 
 ```python
 import asyncio
-from simpx_py import BotProfile, SimpleXBot
+from simpx import BotProfile, SimpleXBot
 
 # 1. Create a bot profile (can be saved/loaded)
 # If a profile with this name exists, it will be loaded.

@@ -1,6 +1,5 @@
 import qrcode
 import io
-from PIL import Image
 
 def print_qr_to_terminal(text: str):
     """

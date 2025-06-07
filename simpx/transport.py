@@ -162,6 +162,8 @@ class ChatTransport(Transport[ChatSrvRequest, Union[ChatSrvResponse, ChatRespons
             
             try:
                 json_data = json.loads(data)
+                if json_data.get('resp',{}).get('Right'):
+                    json_data['resp'] =  json_data['resp']['Right']
                 if json_data.get('resp', {}).get('type') and isinstance(json_data['resp']['type'], str):
                     # Parse the response as a ChatResponse object
                     resp = ChatSrvResponse(json_data.get('corrId'), json_data['resp'])

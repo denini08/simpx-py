@@ -414,6 +414,9 @@ class ChatClient:
         """Get the user's contact address."""
         r = await self.send_chat_command({"type": "showMyAddress"})
         if r["type"] == "userContactLink":
+            link = r["contactLink"]
+            if "connLinkContact" in link:
+                return link["connLinkContact"]["connFullLink"]
             return r["contactLink"]["connReqContact"]
         elif (r["type"] == "chatCmdError" and 
               r["chatError"]["type"] == "errorStore" and 

@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -53,14 +54,16 @@ class SimpleXDaemon:
         self.base_url = Template("https://github.com/simplex-chat/simplex-chat/releases/latest/download/simplex-chat-${os}")
         # Link used to check hashes
         self.release_url = "https://github.com/simplex-chat/simplex-chat/releases"
-        self.operating_system = os.uname().sysname
+        self.operating_system = platform.system()
         self.set_platform()
 
     # The OS will default to linux version 
     def set_platform(self):
+        global APP_NAME, abs_file_path
         if self.operating_system == "Windows":
             self.operating_system = OS.WINDOWS.value
-            APP_NAME = APP_NAME+".exe"
+            APP_NAME = APP_NAME + ".exe"
+            abs_file_path = os.path.join(download_dir, APP_NAME)
         elif self.operating_system == "Darwin":
             self.operating_system = OS.MACOS.value
         else:
